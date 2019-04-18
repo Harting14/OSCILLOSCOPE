@@ -1,0 +1,496 @@
+classdef OSCILLOSCOPE_DEMO < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        EC3882PROYECTOSIIOSCILOSCOPIOUIFigure  matlab.ui.Figure
+        OSCILLOSCOPEPanel  matlab.ui.container.Panel
+        CH2A2Button        matlab.ui.control.Button
+        CH3D1Button        matlab.ui.control.Button
+        CH4D2Button        matlab.ui.control.Button
+        CHANNELSLabel      matlab.ui.control.Label
+        LampLabel          matlab.ui.control.Label
+        Lamp               matlab.ui.control.Lamp
+        Lamp_2Label        matlab.ui.control.Label
+        Lamp_2             matlab.ui.control.Lamp
+        Lamp_3Label        matlab.ui.control.Label
+        Lamp_3             matlab.ui.control.Lamp
+        Lamp_4Label        matlab.ui.control.Label
+        Lamp_4             matlab.ui.control.Lamp
+        VERTICALLabel      matlab.ui.control.Label
+        HORIZONTALLabel    matlab.ui.control.Label
+        CH1KnobLabel       matlab.ui.control.Label
+        CH1Knob            matlab.ui.control.DiscreteKnob
+        CH4KnobLabel       matlab.ui.control.Label
+        CH4Knob            matlab.ui.control.DiscreteKnob
+        CH2KnobLabel       matlab.ui.control.Label
+        CH2Knob            matlab.ui.control.DiscreteKnob
+        CH3KnobLabel       matlab.ui.control.Label
+        CH3Knob            matlab.ui.control.DiscreteKnob
+        mSECDIVKnobLabel   matlab.ui.control.Label
+        mSECDIVKnob        matlab.ui.control.DiscreteKnob
+        OFF1Button         matlab.ui.control.Button
+        OFF2Button         matlab.ui.control.Button
+        OFF3Button         matlab.ui.control.Button
+        OFF4Button         matlab.ui.control.Button
+        CH1A1Button        matlab.ui.control.Button
+        UIAxes             matlab.ui.control.UIAxes
+        ENABLEButton       matlab.ui.control.Button
+        Label              matlab.ui.control.Label
+        Lamp_5             matlab.ui.control.Lamp
+    end
+
+
+    properties (Access = private)
+        CH1_Data                  % Variable de datos de canal 1 (1er analógico)
+        CH2_Data                  % Variable de datos de canal 2 (2do analógico)
+        CH3_Data                  % Variable de datos de canal 3 (1er digital)
+        CH4_Data                  % Variable de datos de canal 4 (2do digital)
+        Fs;                       % Parámetro para simular variación de frecuencia       
+        ctte_x = 1000;            % Eje x 
+        i = 0;                    % Contador (prueba)        
+        s = 1000;                 % Muestras (prueba)         
+        a = tic;                  % Reloj para velocidad
+        b;                        % Variable de control de velocidad
+        Vs = 10;                  % Mayor => menos tiempo de espera para mostrar datos en display
+        y1,y2,y3,y4;              % Funciones de prueba                                          
+        h1,h2,h3,h4;              % AnimatedLines de prueba                                     
+        A1,A2,A3,A4;              % Amplitudes de canales             
+    end     
+
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app)
+            app.Lamp.Color   = [1 0 0];  
+            app.Lamp_2.Color = [1 0 0];
+            app.Lamp_3.Color = [1 0 0];
+            app.Lamp_4.Color = [1 0 0]; 
+            app.Lamp_5.Color = [1 0 0];
+            app.A1 = 1;                       
+            app.A2 = 1;
+            app.A3 = 1;
+            app.A4 = 1;  
+            app.Fs = 25;                        
+        end
+
+        % Button pushed function: CH1A1Button
+        function CH1A1ButtonPushed(app, event)
+            app.Lamp.Color = [0 1 0];  
+            clearpoints(app.h1);
+            app.h1 = animatedline(app.UIAxes,'Color','b');
+        end
+
+        % Button pushed function: CH2A2Button
+        function CH2A2ButtonPushed(app, event)
+            app.Lamp_2.Color = [0 1 0];
+            clearpoints(app.h2);
+            app.h2 = animatedline(app.UIAxes,'Color','r');
+        end
+
+        % Button pushed function: OFF1Button
+        function OFF1ButtonPushed(app, event)
+            app.Lamp.Color = [1 0 0];
+            clearpoints(app.h1);
+            app.h1 = animatedline(app.UIAxes,'LineStyle','none');            
+        end
+
+        % Button pushed function: OFF2Button
+        function OFF2ButtonPushed(app, event)
+            app.Lamp_2.Color = [1 0 0];                       
+            clearpoints(app.h2);
+            app.h2 = animatedline(app.UIAxes,'LineStyle','none');              
+        end
+
+        % Button pushed function: ENABLEButton
+        function ENABLEButtonPushed(app, event)
+            app.Lamp_5.Color = [0 1 0];
+            
+            % Creando objetos animated line 
+            app.h1 = animatedline(app.UIAxes,'Color','w');
+            app.h2 = animatedline(app.UIAxes,'Color','w'); 
+            app.h3 = animatedline(app.UIAxes,'Color','w');
+            app.h4 = animatedline(app.UIAxes,'Color','w'); 
+            
+            while app.i<app.ctte_x                        
+            app.y1 = 10 + app.A1*sin(app.i/app.Fs);
+            app.y2 = 7 + app.A2*cos(app.i/app.Fs);
+            app.y3 = 4 + app.A3*square(app.i/app.Fs);
+            app.y4 = 1 - app.A4*square(app.i/app.Fs);
+            addpoints(app.h1,app.i,app.y1)
+            addpoints(app.h2,app.i,app.y2)
+            addpoints(app.h3,app.i,app.y3)
+            addpoints(app.h4,app.i,app.y4)
+            app.i = app.i + 1;
+            app.b = toc(app.a);
+                if app.b > (1/app.Vs)     % 'Velocidad' al actualizar pantalla
+                    drawnow               % Update cada 1/Vs segundos     
+                    app.a = tic;          % Resetea timer luego de update
+                end
+                if app.i>=app.ctte_x      % Cuando llegue al final del display reseta contador y borra las gráficas
+                    app.i = 0;
+                    clearpoints(app.h1);
+                    clearpoints(app.h2);
+                    clearpoints(app.h3);
+                    clearpoints(app.h4);
+                end    
+            end            
+        end
+
+        % Button pushed function: CH3D1Button
+        function CH3D1ButtonPushed(app, event)
+            app.Lamp_3.Color = [0 1 0];  
+            clearpoints(app.h3);
+            app.h3 = animatedline(app.UIAxes,'Color','b');
+        end
+
+        % Button pushed function: CH4D2Button
+        function CH4D2ButtonPushed(app, event)
+            app.Lamp_4.Color = [0 1 0];  
+            clearpoints(app.h4);
+            app.h4 = animatedline(app.UIAxes,'Color','r');
+        end
+
+        % Button pushed function: OFF3Button
+        function OFF3ButtonPushed(app, event)
+            app.Lamp_3.Color = [1 0 0];                       
+            clearpoints(app.h3);
+            app.h3 = animatedline(app.UIAxes,'LineStyle','none'); 
+        end
+
+        % Button pushed function: OFF4Button
+        function OFF4ButtonPushed(app, event)
+            app.Lamp_4.Color = [1 0 0];                       
+            clearpoints(app.h4);
+            app.h4 = animatedline(app.UIAxes,'LineStyle','none');
+        end
+
+        % Value changed function: CH1Knob
+        function CH1KnobValueChanged(app, event)
+            app.A1 = app.CH1Knob.Value;            
+            if isequal(app.A1,'0.3')
+                app.A1 = 0.3;
+            elseif isequal(app.A1,'3.0')
+                app.A1 = 3; 
+            else
+                app.A1 = 1;
+            end
+        end
+
+        % Value changed function: CH2Knob
+        function CH2KnobValueChanged(app, event)
+            app.A2 = app.CH2Knob.Value;
+            if isequal(app.A2,'0.3')
+                app.A2 = 0.3;
+            elseif isequal(app.A2,'3.0')
+                app.A2 = 3; 
+            else
+                app.A2 = 1;
+            end
+        end
+
+        % Value changed function: CH3Knob
+        function CH3KnobValueChanged(app, event)
+            app.A3 = app.CH3Knob.Value;
+            if isequal(app.A3,'0.3')
+                app.A3 = 0.3;
+            elseif isequal(app.A3,'3.0')
+                app.A3 = 3; 
+            else
+                app.A3 = 1;
+            end
+        end
+
+        % Value changed function: CH4Knob
+        function CH4KnobValueChanged(app, event)
+            app.A4 = app.CH4Knob.Value;
+            if isequal(app.A4,'0.3')
+                app.A4 = 0.3;
+            elseif isequal(app.A4,'3.0')
+                app.A4 = 3; 
+            else
+                app.A4 = 1;
+            end
+        end
+
+        % Value changed function: mSECDIVKnob
+        function mSECDIVKnobValueChanged(app, event)
+            app.Fs = app.mSECDIVKnob.Value;
+            if isequal(app.Fs,'10')
+                app.Fs = 10;
+            elseif isequal(app.Fs,'50')
+                app.Fs = 50; 
+            elseif isequal(app.Fs,'100')
+                app.Fs = 100;
+            elseif isequal(app.Fs,'250')
+                app.Fs = 250; 
+            elseif isequal(app.Fs,'500')
+                app.Fs = 500;
+            elseif isequal(app.Fs,'1000')
+                app.Fs = 1000;
+            else
+                app.Fs = 25;
+            end
+        end
+    end
+
+    % App initialization and construction
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create EC3882PROYECTOSIIOSCILOSCOPIOUIFigure
+            app.EC3882PROYECTOSIIOSCILOSCOPIOUIFigure = uifigure;
+            app.EC3882PROYECTOSIIOSCILOSCOPIOUIFigure.Position = [100 100 639 387];
+            app.EC3882PROYECTOSIIOSCILOSCOPIOUIFigure.Name = 'EC-3882 PROYECTOS II: OSCILOSCOPIO';
+
+            % Create OSCILLOSCOPEPanel
+            app.OSCILLOSCOPEPanel = uipanel(app.EC3882PROYECTOSIIOSCILOSCOPIOUIFigure);
+            app.OSCILLOSCOPEPanel.Title = 'OSCILLOSCOPE';
+            app.OSCILLOSCOPEPanel.BackgroundColor = [0.9412 0.9412 0.9412];
+            app.OSCILLOSCOPEPanel.FontWeight = 'bold';
+            app.OSCILLOSCOPEPanel.Position = [14 13 614 357];
+
+            % Create CH2A2Button
+            app.CH2A2Button = uibutton(app.OSCILLOSCOPEPanel, 'push');
+            app.CH2A2Button.ButtonPushedFcn = createCallbackFcn(app, @CH2A2ButtonPushed, true);
+            app.CH2A2Button.Position = [372 241 67 22];
+            app.CH2A2Button.Text = 'CH2 (A2)';
+
+            % Create CH3D1Button
+            app.CH3D1Button = uibutton(app.OSCILLOSCOPEPanel, 'push');
+            app.CH3D1Button.ButtonPushedFcn = createCallbackFcn(app, @CH3D1ButtonPushed, true);
+            app.CH3D1Button.Position = [488 276 67 22];
+            app.CH3D1Button.Text = 'CH3 (D1)';
+
+            % Create CH4D2Button
+            app.CH4D2Button = uibutton(app.OSCILLOSCOPEPanel, 'push');
+            app.CH4D2Button.ButtonPushedFcn = createCallbackFcn(app, @CH4D2ButtonPushed, true);
+            app.CH4D2Button.Position = [488 241 67 22];
+            app.CH4D2Button.Text = 'CH4 (D2)';
+
+            % Create CHANNELSLabel
+            app.CHANNELSLabel = uilabel(app.OSCILLOSCOPEPanel);
+            app.CHANNELSLabel.HorizontalAlignment = 'center';
+            app.CHANNELSLabel.VerticalAlignment = 'center';
+            app.CHANNELSLabel.FontName = 'Arial';
+            app.CHANNELSLabel.Position = [420 313 99 15];
+            app.CHANNELSLabel.Text = '4 CHANNELS';
+
+            % Create LampLabel
+            app.LampLabel = uilabel(app.OSCILLOSCOPEPanel);
+            app.LampLabel.HorizontalAlignment = 'right';
+            app.LampLabel.Position = [411 280 25 15];
+            app.LampLabel.Text = '';
+
+            % Create Lamp
+            app.Lamp = uilamp(app.OSCILLOSCOPEPanel);
+            app.Lamp.Position = [451 283 10 10];
+            app.Lamp.Color = [1 0 0];
+
+            % Create Lamp_2Label
+            app.Lamp_2Label = uilabel(app.OSCILLOSCOPEPanel);
+            app.Lamp_2Label.HorizontalAlignment = 'right';
+            app.Lamp_2Label.Position = [411 245 25 15];
+            app.Lamp_2Label.Text = '';
+
+            % Create Lamp_2
+            app.Lamp_2 = uilamp(app.OSCILLOSCOPEPanel);
+            app.Lamp_2.Position = [451 248 10 10];
+            app.Lamp_2.Color = [1 0 0];
+
+            % Create Lamp_3Label
+            app.Lamp_3Label = uilabel(app.OSCILLOSCOPEPanel);
+            app.Lamp_3Label.HorizontalAlignment = 'right';
+            app.Lamp_3Label.Position = [524 280 25 15];
+            app.Lamp_3Label.Text = '';
+
+            % Create Lamp_3
+            app.Lamp_3 = uilamp(app.OSCILLOSCOPEPanel);
+            app.Lamp_3.Position = [564 283 10 10];
+            app.Lamp_3.Color = [1 0 0];
+
+            % Create Lamp_4Label
+            app.Lamp_4Label = uilabel(app.OSCILLOSCOPEPanel);
+            app.Lamp_4Label.HorizontalAlignment = 'right';
+            app.Lamp_4Label.Position = [524 245 25 15];
+            app.Lamp_4Label.Text = '';
+
+            % Create Lamp_4
+            app.Lamp_4 = uilamp(app.OSCILLOSCOPEPanel);
+            app.Lamp_4.Position = [564 248 10 10];
+            app.Lamp_4.Color = [1 0 0];
+
+            % Create VERTICALLabel
+            app.VERTICALLabel = uilabel(app.OSCILLOSCOPEPanel);
+            app.VERTICALLabel.HorizontalAlignment = 'center';
+            app.VERTICALLabel.VerticalAlignment = 'center';
+            app.VERTICALLabel.FontName = 'Arial';
+            app.VERTICALLabel.Position = [397 212 64 15];
+            app.VERTICALLabel.Text = 'VERTICAL';
+
+            % Create HORIZONTALLabel
+            app.HORIZONTALLabel = uilabel(app.OSCILLOSCOPEPanel);
+            app.HORIZONTALLabel.HorizontalAlignment = 'center';
+            app.HORIZONTALLabel.VerticalAlignment = 'center';
+            app.HORIZONTALLabel.FontName = 'Arial';
+            app.HORIZONTALLabel.Position = [510 212 82 15];
+            app.HORIZONTALLabel.Text = 'HORIZONTAL';
+
+            % Create CH1KnobLabel
+            app.CH1KnobLabel = uilabel(app.OSCILLOSCOPEPanel);
+            app.CH1KnobLabel.HorizontalAlignment = 'center';
+            app.CH1KnobLabel.Position = [372 125 30 15];
+            app.CH1KnobLabel.Text = 'CH1';
+
+            % Create CH1Knob
+            app.CH1Knob = uiknob(app.OSCILLOSCOPEPanel, 'discrete');
+            app.CH1Knob.Items = {'0.3', '1.0', '3.0'};
+            app.CH1Knob.ValueChangedFcn = createCallbackFcn(app, @CH1KnobValueChanged, true);
+            app.CH1Knob.Position = [377 155 21 21];
+            app.CH1Knob.Value = '1.0';
+
+            % Create CH4KnobLabel
+            app.CH4KnobLabel = uilabel(app.OSCILLOSCOPEPanel);
+            app.CH4KnobLabel.HorizontalAlignment = 'center';
+            app.CH4KnobLabel.Position = [446 34 30 15];
+            app.CH4KnobLabel.Text = 'CH4';
+
+            % Create CH4Knob
+            app.CH4Knob = uiknob(app.OSCILLOSCOPEPanel, 'discrete');
+            app.CH4Knob.Items = {'0.3', '1.0', '3.0'};
+            app.CH4Knob.ValueChangedFcn = createCallbackFcn(app, @CH4KnobValueChanged, true);
+            app.CH4Knob.Position = [451 64 21 21];
+            app.CH4Knob.Value = '1.0';
+
+            % Create CH2KnobLabel
+            app.CH2KnobLabel = uilabel(app.OSCILLOSCOPEPanel);
+            app.CH2KnobLabel.HorizontalAlignment = 'center';
+            app.CH2KnobLabel.Position = [446 125 30 15];
+            app.CH2KnobLabel.Text = 'CH2';
+
+            % Create CH2Knob
+            app.CH2Knob = uiknob(app.OSCILLOSCOPEPanel, 'discrete');
+            app.CH2Knob.Items = {'0.3', '1.0', '3.0'};
+            app.CH2Knob.ItemsData = {'0.3', '1.0', '3.0'};
+            app.CH2Knob.ValueChangedFcn = createCallbackFcn(app, @CH2KnobValueChanged, true);
+            app.CH2Knob.Position = [451 155 21 21];
+            app.CH2Knob.Value = '1.0';
+
+            % Create CH3KnobLabel
+            app.CH3KnobLabel = uilabel(app.OSCILLOSCOPEPanel);
+            app.CH3KnobLabel.HorizontalAlignment = 'center';
+            app.CH3KnobLabel.Position = [372 34 30 15];
+            app.CH3KnobLabel.Text = 'CH3';
+
+            % Create CH3Knob
+            app.CH3Knob = uiknob(app.OSCILLOSCOPEPanel, 'discrete');
+            app.CH3Knob.Items = {'0.3', '1.0', '3.0'};
+            app.CH3Knob.ItemsData = {'0.3', '1.0', '3.0'};
+            app.CH3Knob.ValueChangedFcn = createCallbackFcn(app, @CH3KnobValueChanged, true);
+            app.CH3Knob.Position = [377 64 21 21];
+            app.CH3Knob.Value = '1.0';
+
+            % Create mSECDIVKnobLabel
+            app.mSECDIVKnobLabel = uilabel(app.OSCILLOSCOPEPanel);
+            app.mSECDIVKnobLabel.HorizontalAlignment = 'center';
+            app.mSECDIVKnobLabel.Position = [519 125 63 15];
+            app.mSECDIVKnobLabel.Text = 'mSEC/DIV';
+
+            % Create mSECDIVKnob
+            app.mSECDIVKnob = uiknob(app.OSCILLOSCOPEPanel, 'discrete');
+            app.mSECDIVKnob.Items = {'10', '25', '50', '100', '250', '500', '1000'};
+            app.mSECDIVKnob.ValueChangedFcn = createCallbackFcn(app, @mSECDIVKnobValueChanged, true);
+            app.mSECDIVKnob.Position = [540 155 21 21];
+            app.mSECDIVKnob.Value = '25';
+
+            % Create OFF1Button
+            app.OFF1Button = uibutton(app.OSCILLOSCOPEPanel, 'push');
+            app.OFF1Button.ButtonPushedFcn = createCallbackFcn(app, @OFF1ButtonPushed, true);
+            app.OFF1Button.Position = [505 78 48 22];
+            app.OFF1Button.Text = 'OFF 1';
+
+            % Create OFF2Button
+            app.OFF2Button = uibutton(app.OSCILLOSCOPEPanel, 'push');
+            app.OFF2Button.ButtonPushedFcn = createCallbackFcn(app, @OFF2ButtonPushed, true);
+            app.OFF2Button.Position = [505 48 48 22];
+            app.OFF2Button.Text = 'OFF 2';
+
+            % Create OFF3Button
+            app.OFF3Button = uibutton(app.OSCILLOSCOPEPanel, 'push');
+            app.OFF3Button.ButtonPushedFcn = createCallbackFcn(app, @OFF3ButtonPushed, true);
+            app.OFF3Button.Position = [556 78 48 22];
+            app.OFF3Button.Text = 'OFF 3';
+
+            % Create OFF4Button
+            app.OFF4Button = uibutton(app.OSCILLOSCOPEPanel, 'push');
+            app.OFF4Button.ButtonPushedFcn = createCallbackFcn(app, @OFF4ButtonPushed, true);
+            app.OFF4Button.Position = [556 48 48 22];
+            app.OFF4Button.Text = 'OFF 4';
+
+            % Create CH1A1Button
+            app.CH1A1Button = uibutton(app.OSCILLOSCOPEPanel, 'push');
+            app.CH1A1Button.ButtonPushedFcn = createCallbackFcn(app, @CH1A1ButtonPushed, true);
+            app.CH1A1Button.Position = [372 276 67 22];
+            app.CH1A1Button.Text = 'CH1 (A1)';
+
+            % Create UIAxes
+            app.UIAxes = uiaxes(app.OSCILLOSCOPEPanel);
+            title(app.UIAxes, 'DISPLAY')
+            app.UIAxes.XLim = [0 1000];
+            app.UIAxes.YLim = [0 13];
+            app.UIAxes.ColorOrder = [0 0.4471 0.7412;0.851 0.3294 0.102;0.9294 0.6941 0.1255;0.4902 0.1804 0.5608;0.4667 0.6745 0.1882;0.302 0.749 0.9294;0.6353 0.0784 0.1843];
+            app.UIAxes.LineStyleOrder = {'- '};
+            app.UIAxes.Box = 'on';
+            app.UIAxes.XTickLabel = {''; ''};
+            app.UIAxes.YTickLabel = '';
+            app.UIAxes.NextPlot = 'add';
+            app.UIAxes.XGrid = 'on';
+            app.UIAxes.YGrid = 'on';
+            app.UIAxes.Position = [15 9 323 319];
+
+            % Create ENABLEButton
+            app.ENABLEButton = uibutton(app.OSCILLOSCOPEPanel, 'push');
+            app.ENABLEButton.ButtonPushedFcn = createCallbackFcn(app, @ENABLEButtonPushed, true);
+            app.ENABLEButton.Position = [497 13 81 22];
+            app.ENABLEButton.Text = 'ENABLE';
+
+            % Create Label
+            app.Label = uilabel(app.OSCILLOSCOPEPanel);
+            app.Label.HorizontalAlignment = 'right';
+            app.Label.Position = [544 17 25 15];
+            app.Label.Text = '';
+
+            % Create Lamp_5
+            app.Lamp_5 = uilamp(app.OSCILLOSCOPEPanel);
+            app.Lamp_5.Position = [584 14 20 20];
+        end
+    end
+
+    methods (Access = public)
+
+        % Construct app
+        function app = OSCILLOSCOPE_DEMO
+
+            % Create and configure components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.EC3882PROYECTOSIIOSCILOSCOPIOUIFigure)
+
+            % Execute the startup function
+            runStartupFcn(app, @startupFcn)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.EC3882PROYECTOSIIOSCILOSCOPIOUIFigure)
+        end
+    end
+end
